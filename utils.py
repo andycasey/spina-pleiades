@@ -1,0 +1,53 @@
+
+import os
+import logging
+import pickle
+
+import pystan as stan
+
+def load_stan_model(path, cached_path=None, recompile=False, overwrite=True):
+    """
+    Load a Stan model from a file. If a cached file exists, use it by default.
+
+    :param path:
+        The path of the Stan model.
+
+    :param cached_path: [optional]
+        The path of the cached Stan model. By default this will be the same  as
+        :path:, with a `.cached` extension appended.
+
+    :param recompile: [optional]
+        Recompile the model instead of using a cached version. If the cached
+        version is different from the version in path, the model will be
+        recompiled automatically.
+    """
+
+    cached_path = cached_path or "{}.cached".format(path)
+
+    with open(path, "r") as fp:
+        model_code = fp.readlines()
+
+    while os.path.exists(cached_path) and not recompile:
+        with open(cached_path, "rb") as fp:
+            model = pickle.load(fp)
+
+        if model.model_code != model_code:
+            logging.warn("Cached model at {} differs from the code in {}; "\
+                         "recompiling model".format(cached_path, path))
+            recompile = True
+            continue
+
+        else:
+            logging.info("Using pre-compiled model from {}".format(cached_path)) 
+            break
+
+    else:
+        model = stan.StanModel(model_code=model_code)
+
+        # Save the compiled model.
+        if not os.path.exists(cached_path) or overwrite:
+            with open(cached_path, "wb") as fp:
+                pickle.dump(model, fp)
+
+
+    return model
