@@ -5,6 +5,18 @@ import pickle
 
 import pystan as stan
 
+
+def sampling_kwds(**kwargs):
+
+    kwds = dict(chains=4)
+    kwds.update(kwargs)
+
+    if "init" in kwds:
+        kwds["init"] = [kwds["init"]] * kwds["chains"]
+
+    return kwds
+
+
 def load_stan_model(path, cached_path=None, recompile=False, overwrite=True):
     """
     Load a Stan model from a file. If a cached file exists, use it by default.
@@ -25,7 +37,7 @@ def load_stan_model(path, cached_path=None, recompile=False, overwrite=True):
     cached_path = cached_path or "{}.cached".format(path)
 
     with open(path, "r") as fp:
-        model_code = fp.readlines()
+        model_code = fp.read()
 
     while os.path.exists(cached_path) and not recompile:
         with open(cached_path, "rb") as fp:
