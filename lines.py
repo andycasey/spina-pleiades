@@ -13,11 +13,6 @@ spina = Table.read("Abundances_Pleiades_VS_Sun.csv")
 indices = np.array([5, 3, 4, 1, 2])
 spina = spina[indices]
 
-# Sort 
-
-
-# Problematic elements (e.g., duplicated ionisation states, missing values)
-#exclude_elements = ["[CuI]", "[CrII]", "[TiII]", "[FeII]"]
 exclude_elements = []
 
 # Generate data dictionary.
@@ -38,8 +33,7 @@ filler_error_value = 10**6
 filler_value = dict([(column_index, np.nanmean(y.T[column_index])) \
     for column_index in column_indices])
 
-y_ranges = np.array([y - 5 * yerr, y + 5 * yerr])
-
+y_range = np.array([y - 5 * yerr, y + 5 * yerr])
 for row_index, column_index in zip(row_indices, column_indices):
     y[row_index, column_index] = filler_value[column_index]
     yerr[row_index, column_index] = filler_error_value
@@ -74,8 +68,8 @@ init = dict(c=np.nanmedian(y, axis=1), m=np.zeros(S), scatter=0.001 * np.ones(A)
 
 offsets = np.mean(y, axis=1)
 #offsets = 0
-data = dict(S=S, A=A, x=x, y=y.T - offsets, yerr=yerr.T, min_y=np.nanmin(y_ranges) ,
-    max_y=np.nanmax(y_ranges))
+data = dict(S=S, A=A, x=x, y=y.T - offsets, yerr=yerr.T, min_y=np.min(y_range),
+    max_y=np.max(y_range))
 op_params = model.optimizing(data=data, iter=100000, init=init)
 
 
@@ -98,7 +92,8 @@ samples = model.sampling(**sampling_kwds(data=data, init=op_params,
 # Make trace plots of things we care about.
 fig = traceplot(samples, pars=("c", "m", "ln_f"))
 fig.tight_layout()
-fig.savefig("line_trace.pdf", dpi=300)
+fig.savefig("lines_trace.pdf", dpi=300)
+fig.savefig("lines_trace.png", dpi=300)
 
 
 # Draw figures.
@@ -170,11 +165,7 @@ xlimits = (np.min(xlimits), np.max(xlimits))
 
 for ax in hist_axes:
     ax.set_xlim(xlimits)
-    #xtick_formatter = ScalarFormatter()
-    #xtick_formatter.set_powerlimits((-5, 5))
     ax.xaxis.set_major_locator(MaxNLocator(3))
-    #ax.xaxis.set_major_formatter(xtick_formatter)
-    ##    verticalalignment="top", horizontalalignment="right")
 
     ax.set_xlabel(r"$m$ $(10^{-5})$")
 
@@ -182,6 +173,6 @@ fig.tight_layout()
 fig.subplots_adjust(wspace=0)
 
 fig.savefig("line_fits.pdf", dpi=300)
-
+fig.savefig("line_fits.png", dpi=300)
 
 

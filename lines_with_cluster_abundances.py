@@ -6,18 +6,16 @@ from pystan.plots import traceplot
 from utils import load_stan_model, sampling_kwds
 
 
-model = load_stan_model("line_with_cluster_abundances.stan")
+model = load_stan_model("lines_with_cluster_abundances.stan")
 
 spina = Table.read("Abundances_Pleiades_VS_Sun.csv")
 # Exclude Vesta and sort so it matches existing figure:
 indices = np.array([5, 3, 4, 1, 2])
 spina = spina[indices]
 
-# Sort 
 
 
 # Problematic elements (e.g., duplicated ionisation states, missing values)
-#exclude_elements = ["[CuI]", "[CrII]", "[TiII]", "[FeII]"]
 exclude_elements = []
 
 # Generate data dictionary.
@@ -37,8 +35,6 @@ row_indices, column_indices = np.where(is_missing)
 filler_error_value = 10**6
 filler_value = dict([(column_index, np.nanmean(y.T[column_index])) \
     for column_index in column_indices])
-
-y_ranges = np.array([y - 5 * yerr, y + 5 * yerr])
 
 for row_index, column_index in zip(row_indices, column_indices):
     y[row_index, column_index] = filler_value[column_index]
@@ -72,8 +68,7 @@ init = dict(c=np.zeros(A), m=np.zeros(S), scatter=0.001 * np.ones(A),
     ln_f=0, mean_cluster_abundance=np.median(y))
 
 
-data = dict(S=S, A=A, x=x, y=y.T, yerr=yerr.T, min_y=np.nanmin(y_ranges) ,
-    max_y=np.nanmax(y_ranges))
+data = dict(S=S, A=A, x=x, y=y.T, yerr=yerr.T)
 op_params = model.optimizing(data=data, iter=100000, init=init)
 
 
@@ -97,6 +92,7 @@ samples = model.sampling(**sampling_kwds(data=data, init=op_params,
 fig = traceplot(samples, pars=("c", "m", "ln_f"))
 fig.tight_layout()
 fig.savefig("lines_with_cluster_abundances_trace.pdf", dpi=300)
+fig.savefig("lines_with_cluster_abundances_trace.png", dpi=300)
 
 
 # Draw figures.
@@ -167,11 +163,7 @@ xlimits = (np.min(xlimits), np.max(xlimits))
 
 for ax in hist_axes:
     ax.set_xlim(xlimits)
-    #xtick_formatter = ScalarFormatter()
-    #xtick_formatter.set_powerlimits((-5, 5))
     ax.xaxis.set_major_locator(MaxNLocator(3))
-    #ax.xaxis.set_major_formatter(xtick_formatter)
-    ##    verticalalignment="top", horizontalalignment="right")
 
     ax.set_xlabel(r"$m$ $(10^{-5})$")
 
@@ -179,6 +171,7 @@ fig.tight_layout()
 fig.subplots_adjust(wspace=0)
 
 fig.savefig("lines_with_cluster_abundances_fits.pdf", dpi=300)
+fig.savefig("lines_with_cluster_abundances_fits.png", dpi=300)
 
 
 

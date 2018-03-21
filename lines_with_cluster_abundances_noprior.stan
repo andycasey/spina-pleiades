@@ -9,8 +9,6 @@ data {
   vector[A] x;            // condensation temperatures
   vector[A] y[S];         // abundance measurements
   vector[A] yerr[S];      // uncertainties on abundance measurements
-  real min_y;
-  real max_y;
 }
 
 parameters {
@@ -32,8 +30,6 @@ transformed parameters {
 }
 
 model {
-  //c ~ normal(0, 1);
-  //m ~ normal(0, 1e-5);
   for (s in 1:S)
     y[s] ~ normal(line[s], total_error[s]);
 }
