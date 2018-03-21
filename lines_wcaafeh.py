@@ -6,7 +6,7 @@ from pystan.plots import traceplot
 from utils import load_stan_model, sampling_kwds
 
 
-model = load_stan_model("lines_with_cluster_abundances.stan")
+model = load_stan_model("lines_wcaafeh.stan")
 
 spina = Table.read("Abundances_Pleiades_VS_Sun.csv")
 # Exclude Vesta and sort so it matches existing figure:
@@ -66,34 +66,21 @@ Lodders = dict([
 x = np.array([Lodders[el.strip("[I]")] for el in elements]).astype(float)
 
 init = dict(c=np.zeros(A), m=np.zeros(S), scatter=0.001 * np.ones(A),
-    ln_f=0, mean_cluster_abundance=np.median(y))
+    ln_f=0, mean_cluster_abundance=np.median(y),
+    k=np.zeros(S))
 
-
-data = dict(S=S, A=A, x=x, y=y.T, yerr=yerr.T)
+feh_index = elements.index("[FeI]")
+data = dict(S=S, A=A, x=x, y=y.T, yerr=yerr.T, feh=y[feh_index])
 op_params = model.optimizing(data=data, iter=100000, init=init)
-
-
-import matplotlib.pyplot as plt
-fig, axes = plt.subplots(S)
-for i, ax in enumerate(axes):
-
-    ax.scatter(np.repeat(x, S), (y.T - op_params["c"]).T.flatten(),
-        facecolor="#666666",  s=1)
-    ax.scatter(x, y.T[i] - op_params["c"], facecolor="b")
-    ax.axhline(0)
-
-    idx = np.argsort(x)
-    line = op_params["m"][i] * x 
-    ax.plot(x[idx], line[idx], c="r")
 
 samples = model.sampling(**sampling_kwds(data=data, init=op_params,
     chains=2, iter=10000))
 
 # Make trace plots of things we care about.
-fig = traceplot(samples, pars=("c", "m", "ln_f"))
+fig = traceplot(samples, pars=("c", "m", "ln_f", "k"))
 fig.tight_layout()
-fig.savefig("lines_with_cluster_abundances_trace.pdf", dpi=300)
-fig.savefig("lines_with_cluster_abundances_trace.png", dpi=300)
+fig.savefig("lines_wcaafeh_trace.pdf", dpi=300)
+fig.savefig("lines_wcaafeh_trace.png", dpi=300)
 
 
 # Draw figures.
@@ -102,7 +89,6 @@ N, _ = chains["m"].shape
 x_sort = np.argsort(x)
 
 
-#fig, axes = plt.subplots(S)
 fig = plt.figure(figsize=(6.5, 6.05))
 from matplotlib.gridspec import  GridSpec
 from matplotlib.ticker  import  MaxNLocator
@@ -126,7 +112,8 @@ for i in range(S):
         yerr=total_yerr[ok], 
         fmt=None, ecolor="k")
 
-    lines = np.dot(chains["m"][:, i].reshape((-1, 1)), np.atleast_2d(x))
+    lines = np.dot(chains["m"][:, i].reshape((-1, 1)), np.atleast_2d(x)) \
+          + (chains["k"][:, i] * y[feh_index][i]).reshape((-1, 1))
 
     p16, p50, p84 = np.percentile(lines, [5, 50, 95], axis=0)
 
@@ -171,8 +158,8 @@ for ax in hist_axes:
 fig.tight_layout()
 fig.subplots_adjust(wspace=0)
 
-fig.savefig("lines_with_cluster_abundances_fits.pdf", dpi=300)
-fig.savefig("lines_with_cluster_abundances_fits.png", dpi=300)
+fig.savefig("lines_wcaafeh_fits.pdf", dpi=300)
+fig.savefig("lines_wcaafeh_fits.png", dpi=300)
 
 
 # Generate fake data.
