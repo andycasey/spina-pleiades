@@ -1,3 +1,0 @@
-python lines.py
-python lines_with_cluster_abundances.py
-python lines_with_cluster_abundances_noprior.py
